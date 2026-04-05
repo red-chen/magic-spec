@@ -21,10 +21,11 @@ Turn vague ideas into shipped features through a structured workflow: Explore �
 
 AI coding agents are powerful, but without structure they produce inconsistent results. They skip tests, forget requirements, drift from the design, and declare "done" without evidence.
 
-magic-spec solves this with **5 skills** that enforce discipline at every stage:
+magic-spec solves this with **6 skills** that enforce discipline at every stage:
 
 | Problem | How magic-spec solves it |
 |---------|------------------------|
+| Touching unknown or legacy code blindly | `/magic-codebase-recon` maps architecture, hotspots, blast radius, and fragility before any change |
 | Building the wrong thing | `/magic-explore` investigates before committing |
 | Vague requirements | `/magic-proposal` creates formal specs with Given/When/Then scenarios |
 | Skipped tests | `/magic-proposal` designs tests BEFORE implementation |
@@ -34,6 +35,18 @@ magic-spec solves this with **5 skills** that enforce discipline at every stage:
 | Shallow code review | `/magic-code-review` dispatches parallel expert reviewers |
 
 ## Skills
+
+### `/magic-codebase-recon` — Codebase Reconnaissance & Safe-Change Intelligence
+
+Map an unfamiliar or legacy codebase before touching it. Produces a `brief.md` covering five analysis dimensions:
+
+- **Architecture Archaeology** — structural layers, integration points, historical pivots, and known tech debt excavated from git history and source comments
+- **Git Hotspot Analysis** — top churning files, implicit co-change coupling, bug attractors, and dormant modules
+- **Dependency Tracking & Blast Radius** — fan-in/fan-out profiling, cycle detection, and a 3-tier blast radius (Direct → Transitive → Runtime) for any target module
+- **Fragility Scoring** — weighted formula across churn, coupling, blast radius, and test gap → five-band risk rating (🟢 STABLE to ⛔ CRITICAL)
+- **Safe Change Strategy** — sequenced change order with per-module strategies (Strangler Fig, Characterization Tests, Isolation Layer, Feature Flag Guard, Parallel Run, Incremental Extract)
+
+Read-only. All findings land in `brief.md`. Changes happen separately via `/magic-proposal` and `/magic-apply`.
 
 ### `/magic-explore` — Deep Exploration & Discovery
 
@@ -137,6 +150,7 @@ Copy or symlink the skills into your project's `.claude/skills/` directory:
 mkdir -p .claude/skills
 
 # Option A: Symlink (recommended — auto-updates when you pull)
+ln -s /path/to/magic-spec/skills/magic-codebase-recon .claude/skills/magic-codebase-recon
 ln -s /path/to/magic-spec/skills/magic-explore .claude/skills/magic-explore
 ln -s /path/to/magic-spec/skills/magic-proposal .claude/skills/magic-proposal
 ln -s /path/to/magic-spec/skills/magic-apply .claude/skills/magic-apply
@@ -156,6 +170,7 @@ Add this to your project's `CLAUDE.md` to enable automatic skill invocation:
 
 When the user's request matches an available skill, invoke it as your first action:
 
+- First contact with a codebase, legacy modernization, "what will break if I touch X" → invoke magic-codebase-recon
 - Feature ideas, brainstorming, "how does X work" → invoke magic-explore
 - "Build X", "add feature", "create a plan for" → invoke magic-proposal
 - "Implement", "apply the plan", "start coding" → invoke magic-apply

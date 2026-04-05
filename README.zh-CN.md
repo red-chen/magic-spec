@@ -21,10 +21,11 @@
 
 AI 编程代理能力强大，但缺乏结构时会产出不一致的结果——跳过测试、遗忘需求、偏离设计、在没有证据的情况下声称"已完成"。
 
-magic-spec 通过 **5 个技能** 在每个阶段强制执行纪律：
+magic-spec 通过 **6 个技能** 在每个阶段强制执行纪律：
 
 | 问题 | magic-spec 的解决方案 |
 |------|---------------------|
+| 盲目触碰陌生或遗留代码 | `/magic-codebase-recon` 在任何改动前完成架构考古、热点分析、爆炸半径评估与脆弱性评分 |
 | 构建了错误的东西 | `/magic-explore` 在承诺之前先调研 |
 | 需求模糊 | `/magic-proposal` 创建带 Given/When/Then 场景的正式规范 |
 | 跳过测试 | `/magic-proposal` 在实现之前设计测试 |
@@ -34,6 +35,18 @@ magic-spec 通过 **5 个技能** 在每个阶段强制执行纪律：
 | 浅层代码审查 | `/magic-code-review` 调度并行专家审查员 |
 
 ## 技能一览
+
+### `/magic-codebase-recon` — 代码库侦察与安全变更情报
+
+在触碰陌生或遗留代码库之前，先完成全面侦察。最终输出 `brief.md`，覆盖五个分析维度：
+
+- **架构考古** — 分层结构、集成点、历史架构迁移，以及从 git 历史和源码注释中挖掘的显性技术债
+- **Git 热点分析** — 高频变更文件、隐式协同变更耦合、Bug 吸引器、休眠模块
+- **依赖追踪与爆炸半径评估** — 扇入/扇出分析、循环依赖检测，以及任意目标模块的三层爆炸半径（直接 → 传递 → 运行时）
+- **脆弱性评分** — 基于变更频率、耦合度、爆炸半径、测试覆盖缺口的加权公式，输出五档风险等级（🟢 稳定 至 ⛔ 极危）
+- **安全变更策略** — 按风险排序的变更顺序，以及针对每个高危模块的策略建议（绞杀者模式、特征化测试、隔离层、功能开关、并行运行、渐进抽取）
+
+只读模式。所有分析结果写入 `brief.md`，后续改动通过 `/magic-proposal` 和 `/magic-apply` 完成。
 
 ### `/magic-explore` — 深度探索与发现
 
@@ -137,6 +150,7 @@ git clone https://github.com/anthropics/magic-spec.git
 mkdir -p .claude/skills
 
 # 方式 A：符号链接（推荐 — 拉取时自动更新）
+ln -s /path/to/magic-spec/skills/magic-codebase-recon .claude/skills/magic-codebase-recon
 ln -s /path/to/magic-spec/skills/magic-explore .claude/skills/magic-explore
 ln -s /path/to/magic-spec/skills/magic-proposal .claude/skills/magic-proposal
 ln -s /path/to/magic-spec/skills/magic-apply .claude/skills/magic-apply
@@ -156,6 +170,7 @@ cp -r /path/to/magic-spec/skills/* .claude/skills/
 
 当用户的请求匹配可用技能时，将其作为首要操作调用：
 
+- 首次接触代码库、遗留系统改造、"动这个会炸什么" → 调用 magic-codebase-recon
 - 功能创意、头脑风暴、"X 是怎么工作的" → 调用 magic-explore
 - "构建 X"、"添加功能"、"制定计划" → 调用 magic-proposal
 - "实现"、"执行计划"、"开始编码" → 调用 magic-apply

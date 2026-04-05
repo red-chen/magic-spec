@@ -21,10 +21,11 @@
 
 AIコーディングエージェントは強力ですが、構造がなければ一貫性のない結果を生み出します。テストをスキップし、要件を忘れ、設計から逸脱し、証拠なしに「完了」と宣言します。
 
-magic-specは**5つのスキル**で各段階に規律を強制します：
+magic-specは**6つのスキル**で各段階に規律を強制します：
 
 | 問題 | magic-specの解決策 |
 |------|-------------------|
+| 未知のコードやレガシーコードを盲目的に触る | `/magic-codebase-recon` が変更前にアーキテクチャ、ホットスポット、爆発半径、脆弱性スコアをマッピング |
 | 間違ったものを構築 | `/magic-explore` がコミット前に調査 |
 | 曖昧な要件 | `/magic-proposal` がGiven/When/Thenシナリオ付きの正式な仕様を作成 |
 | テストのスキップ | `/magic-proposal` が実装前にテストを設計 |
@@ -34,6 +35,18 @@ magic-specは**5つのスキル**で各段階に規律を強制します：
 | 浅いコードレビュー | `/magic-code-review` が並列エキスパートレビュアーを配置 |
 
 ## スキル一覧
+
+### `/magic-codebase-recon` — コードベース偵察と安全な変更インテリジェンス
+
+未知のコードベースやレガシーシステムに触れる前に、全体を把握します。5つの分析軸をカバーした `brief.md` を出力します：
+
+- **アーキテクチャ考古学** — レイヤー構造、統合ポイント、過去のアーキテクチャ転換、そしてgit履歴とソースコメントから発掘した既知の技術的負債
+- **Gitホットスポット分析** — 高チャーンファイル、暗黙的な協調変更カップリング、バグ吸引モジュール、休眠ファイル
+- **依存関係追跡と爆発半径評価** — ファンイン/ファンアウト分析、循環依存検出、任意ターゲットモジュールの3層爆発半径（直接 → 推移 → 実行時）
+- **脆弱性スコアリング** — チャーン・カップリング・爆発半径・テストギャップの加重スコア → 5段階リスクバンド（🟢 STABLE から ⛔ CRITICAL）
+- **安全な変更戦略** — リスク順の変更シーケンスと、各危険モジュールへの戦略提案（ストラングラーフィグ、特性化テスト、隔離レイヤー、フィーチャーフラグ、並列実行、段階的抽出）
+
+読み取り専用。すべての発見は `brief.md` に出力します。実装変更は `/magic-proposal` と `/magic-apply` で行います。
 
 ### `/magic-explore` — 深層探索と発見
 
@@ -137,6 +150,7 @@ git clone https://github.com/anthropics/magic-spec.git
 mkdir -p .claude/skills
 
 # 方法A：シンボリックリンク（推奨 — pull時に自動更新）
+ln -s /path/to/magic-spec/skills/magic-codebase-recon .claude/skills/magic-codebase-recon
 ln -s /path/to/magic-spec/skills/magic-explore .claude/skills/magic-explore
 ln -s /path/to/magic-spec/skills/magic-proposal .claude/skills/magic-proposal
 ln -s /path/to/magic-spec/skills/magic-apply .claude/skills/magic-apply
@@ -156,6 +170,7 @@ cp -r /path/to/magic-spec/skills/* .claude/skills/
 
 ユーザーのリクエストが利用可能なスキルに一致する場合、最初のアクションとして呼び出す：
 
+- コードベースへの初回接触、レガシー改修、「これを触ると何が壊れる？」→ magic-codebase-reconを呼び出す
 - 機能アイデア、ブレインストーミング、「Xはどう動くのか」→ magic-exploreを呼び出す
 - 「Xを構築」「機能を追加」「計画を立てて」→ magic-proposalを呼び出す
 - 「実装して」「計画を実行」「コーディング開始」→ magic-applyを呼び出す
