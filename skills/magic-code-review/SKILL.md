@@ -36,6 +36,70 @@ Staff Engineer level automated code review combining spec compliance verificatio
 This skill is READ-ONLY during its review phases. Do NOT modify code during review. Collect all findings first, present them, and let the user decide what to fix. The only exception is the Fix Phase at the end, when the user explicitly approves fixes.
 </HARD-GATE>
 
+## code-review-tasks.md — Persistent Finding Tracker
+
+To avoid re-surfacing already-handled findings on subsequent runs, this skill maintains a `code-review-tasks.md` file. Location rules:
+- With a spec context: `magic-spec/changes/<name>/code-review-tasks.md`
+- Otherwise (project-level): `magic-spec/code-review-tasks.md`
+
+### File Format
+
+```markdown
+# Code Review Tasks
+
+## Finding: [Title] | File:Line | Severity | Category
+- **Status:** accepted | declined | ignored
+- **Decision:** [User's reasoning]
+- **Date:** YYYY-MM-DD
+- **Resolved in:** [commit sha or "pending"]
+```
+
+### Lifecycle
+
+**Before review (Load Phase):**
+1. Check if `code-review-tasks.md` exists. If yes, load all tracked findings.
+2. For each finding the analysis would produce: check if it already exists in `code-review-tasks.md` with status `accepted`, `declined`, or `ignored`.
+3. **Skip re-analyzing** already-handled findings. Instead, show them in a collapsed "Previously Handled" summary at the top of the report.
+4. Only new or `pending` findings are included in the full analysis.
+
+**After presenting findings (Triage Phase):**
+After the Findings Report, ask the user to triage each new finding:
+
+```
+FINDING TRIAGE
+══════════════
+For each finding, choose:
+  [A] Accept   — I'll fix this
+  [D] Decline  — Valid finding, but I've decided not to fix it (provide reason)
+  [I] Ignore   — Not applicable / false positive (provide reason)
+
+Finding 1: Missing empty input handling (auth.ts:42) [CRITICAL] → ?
+Finding 2: Edge case not covered (auth.test.ts) [IMPORTANT] → ?
+...
+```
+
+After triage, write all decisions to `code-review-tasks.md`. If the file doesn't exist, create it.
+
+**On re-run:**
+- Previously `accepted` findings: shown as "✓ Accepted (will fix)" — not re-analyzed
+- Previously `declined` findings: shown as "✗ Declined — [reason]" — not re-analyzed
+- Previously `ignored` findings: shown as "⊘ Ignored — [reason]" — not re-analyzed
+- New findings (not in tracker): fully analyzed and added to triage
+
+### Previously Handled Summary Block
+
+Always render this block at the very top of the report if any handled findings exist:
+
+```
+PREVIOUSLY HANDLED FINDINGS (skipped from analysis)
+════════════════════════════════════════════════════
+✓  ACCEPTED   Finding 3: Missing type annotation (utils.ts:20) — fix in progress
+✗  DECLINED   Finding 1: Magic number constant (config.ts:15) — intentional design
+⊘  IGNORED    Finding 2: Import ordering (auth.ts:1) — false positive (auto-formatter handles this)
+
+N findings skipped. Full analysis below covers only new/unresolved findings.
+```
+
 ## Review Architecture
 
 The review has two stages and a parallel expert layer:

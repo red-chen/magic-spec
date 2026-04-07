@@ -35,6 +35,71 @@ A Chief Security Officer level automated security audit. Think like an attacker,
 
 This skill does NOT modify code. It produces a **Security Posture Report** with findings, severity ratings, and remediation recommendations. Code changes happen separately.
 
+## security-review-tasks.md — Persistent Finding Tracker
+
+To avoid re-surfacing already-triaged findings on subsequent runs, this skill maintains a `security-review-tasks.md` file. Location rules:
+- With `--diff` and a spec context: `magic-spec/changes/<name>/security-review-tasks.md`
+- Otherwise: `magic-spec/security-review-tasks.md` at the project root
+
+### File Format
+
+```markdown
+# Security Review Tasks
+
+## Finding: [Title] | File:Line | Severity | Phase
+- **Status:** accepted | declined | ignored
+- **Decision:** [User's reasoning]
+- **Date:** YYYY-MM-DD
+- **Resolved in:** [commit sha or "pending"]
+```
+
+### Lifecycle
+
+**Before audit (Load Phase):**
+1. Check if `security-review-tasks.md` exists. If yes, load all tracked findings.
+2. For each finding the analysis would produce: check if it already exists in `security-review-tasks.md` with status `accepted`, `declined`, or `ignored`.
+3. **Skip re-surfacing** already-handled findings. Instead, show them in a collapsed "Previously Handled" summary at the top of the report.
+4. Only new or `pending` findings receive full analysis treatment.
+
+**After presenting findings (Triage Phase):**
+After the Findings Report, ask the user to triage each new finding:
+
+```
+FINDING TRIAGE
+══════════════
+For each finding, choose:
+  [A] Accept   — I'll remediate this
+  [D] Decline  — Valid finding, but accepted as risk (provide reason)
+  [I] Ignore   — Not applicable / false positive (provide reason)
+
+Finding 1: AWS key in git history (CRITICAL, P2) → ?
+Finding 2: Unpinned third-party action (HIGH, P4) → ?
+...
+```
+
+After triage, write all decisions to `security-review-tasks.md`. If the file doesn't exist, create it.
+
+**On re-run:**
+- Previously `accepted` findings: shown as "✓ Accepted (remediation pending)" — not re-analyzed
+- Previously `declined` findings: shown as "✗ Declined — [reason]" — not re-analyzed
+- Previously `ignored` findings: shown as "⊘ Ignored — [reason]" — not re-analyzed
+- New findings (not in tracker): fully analyzed and added to triage
+- **Trend tracking** (Phase 12) uses this file as the source of truth for resolved/persistent/new counts
+
+### Previously Handled Summary Block
+
+Always render this block at the very top of the report if any handled findings exist:
+
+```
+PREVIOUSLY HANDLED FINDINGS (skipped from analysis)
+════════════════════════════════════════════════════
+✓  ACCEPTED   Finding 1: AWS key in git history — remediation in progress
+✗  DECLINED   Finding 2: Unpinned action (approved vendor exception)
+⊘  IGNORED    Finding 3: SSRF in test fixture — false positive
+
+N findings skipped. Full analysis below covers only new/unresolved findings.
+```
+
 ## Audit Phases
 
 ### Phase 0: Architecture Mental Model & Stack Detection
